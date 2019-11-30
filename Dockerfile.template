@@ -1,13 +1,21 @@
 # Dockerfile for icinga2 with icingaweb2
 # https://github.com/jjethwa/icinga2
+FROM balenalib/%%BALENA_MACHINE_NAME%%-node:10-buster-run
+WORKDIR /usr/src/app
 
-FROM debian:buster
+COPY . ./
+
+RUN chmod +x /usr/src/app/icinga-script.sh
+RUN chmod +x /usr/src/app/wait-for-it.sh
+# RUN mv /usr/src/app/icinga-init-script.sh /etc/init.d/ 
+# RUN chmod +x /etc/init.d/icinga-init-script.sh 
+# RUN update-rc.d icinga-init-script.sh defaults
 
 ENV APACHE2_HTTP=REDIRECT \
-    ICINGA2_FEATURE_GRAPHITE=false \
+    ICINGA2_FEATURE_GRAPHITE=true \
     ICINGA2_FEATURE_GRAPHITE_HOST=graphite \
     ICINGA2_FEATURE_GRAPHITE_PORT=2003 \
-    ICINGA2_FEATURE_GRAPHITE_URL=http://graphite \
+    ICINGA2_FEATURE_GRAPHITE_URL=http://10.128.1.209 \
     ICINGA2_FEATURE_GRAPHITE_SEND_THRESHOLDS="true" \
     ICINGA2_FEATURE_GRAPHITE_SEND_METADATA="false" \
     ICINGA2_USER_FULLNAME="Icinga2" \
@@ -20,6 +28,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
+    arp-scan \
     apache2 \
     ca-certificates \
     curl \
@@ -42,12 +51,16 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     php-mysql \
     php-mbstring \
     procps \
+    pssh \
+    parallel \
     pwgen \
     snmp \
+    sshpass \
     msmtp \
     sudo \
     supervisor \
     unzip \
+    vim \
     wget \
     && apt-get --purge remove exim4 exim4-base exim4-config exim4-daemon-light \
     && apt-get clean \
@@ -56,8 +69,9 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 RUN export DEBIAN_FRONTEND=noninteractive \
     && curl -s https://packages.icinga.com/icinga.key \
     | apt-key add - \
-    && echo "deb http://packages.icinga.org/debian icinga-$(lsb_release -cs) main" > /etc/apt/sources.list.d/icinga2.list \
-    && echo "deb http://deb.debian.org/debian $(lsb_release -cs)-backports main" > /etc/apt/sources.list.d/$(lsb_release -cs)-backports.list \
+    && echo "deb http://packages.icinga.org/raspbian icinga-$(lsb_release -cs) main" > /etc/apt/sources.list.d/icinga2.list \
+#    && echo "deb http://mirrordirector.raspbian.org/raspbian buster main contrib non-free rpi" > /etc/apt/sources.list.d/$(lsb_release -cs)-buster.list \
+#    && echo "deb http://deb.debian.org/raspbian $(lsb_release -cs)-backports main" > /etc/apt/sources.list.d/$(lsb_release -cs)-backports.list \
     && apt-get update \
     && apt-get install -y --install-recommends \
     icinga2 \
@@ -72,7 +86,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     nagios-snmp-plugins \
     libmonitoring-plugin-perl \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && cp -r ssh /root/.ssh 
 
 ARG GITREF_MODGRAPHITE=master
 ARG GITREF_MODAWS=master
@@ -137,3 +152,9 @@ EXPOSE 80 443 5665
 
 # Initialize and run Supervisor
 ENTRYPOINT ["/opt/run"]
+
+#CMD "/usr/src/app/wait-for-it.sh 10.128.1.209:80 -t 0 -s -- /bin/sh /usr/src/app/icinga-script.sh"
+
+#ENTRYPOINT ["/bin/sh","-c","/usr/src/app/wait-for-it.sh 10.128.1.209:80 -t 0 -s -- /bin/sh /usr/src/app/icinga-script.sh"]
+
+
