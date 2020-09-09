@@ -8,6 +8,8 @@ This build is automated by push for the git-repo. Just crawl it via:
 
     docker pull jordan/icinga2
 
+[![](https://www.balena.io/deploy.png)](https://dashboard.balena-cloud.com/deploy)
+
 ## Image details
 
 1. Based on debian:buster
